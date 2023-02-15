@@ -7,7 +7,7 @@ source("simulations.R")
 N = 1e4
 p = 100
 init_control = default_init(p)
-init_control$gamma.method = "ipow"
+init_control$gamma.method = "ipower"
 out = parallel_sim(p, N, nreps=100, model="gaussian", sigma_x="id", init_control=init_control)
 ```
 Output contains element-wise coverage, average coverage, and average interval length for our method and MLE.
