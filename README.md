@@ -13,6 +13,7 @@ out = parallel_sim(p, N, nreps=100, model="gaussian", sigma_x="id", init_control
 Output contains element-wise coverage, average coverage, and average interval length for our method and MLE.
 - `p` controls the dimension.
 - `N` controls the number of samples.
+- `nreps` controls number of separate confidence intervals to generate, with newly generated data for each confidence interval.
 - Set `model` to {`gaussian`, `binomial`, or `poisson`}.
 - Set covariance matrix `sigma_x` to values {`id`, `equicor`, `toeplitz`, `ill_cond`}.
 - To choose gamma selection method, set `init_control$gamma.method` to one of values {`heuristic`, `bound`, `lmin`, `ipower`}.
