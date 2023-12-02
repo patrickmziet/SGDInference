@@ -453,6 +453,16 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
         sgd_control = calculate_gammaStar_wrapper(data, init_control=init_control, which.method)
         sgd_control$use_gamma_half = TRUE
     }
+
+    g <- function(n, u, p=NULL, type="naive") {
+        ## Threshold function
+        switch(type,
+               "naive"     = n^u,
+               "enhanced1" = n^u + exp(1 / (1 - 2 * u) - 1) - 2,
+               "enhanced2" = n^u - (1 - 4 * u) / (1 - 2 * u),
+               "dBIC"      = sqrt((n^(1/n) - 1) * (n - p))
+               stop("unknown type"))
+    }
     
     ## ci stat update
     stat_update <- function(out, dat) {
@@ -463,14 +473,14 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
         ci_stat$len   = mean(out$ci[ ,2] - out$ci[ ,1]) # average CI length
         ci_stat$l2    = L2.p(dat$theta_star, out$est)   # L2 norm ||truth - estimate||_2
         ci_stat$J     = dat$theta_star != 0             # True model
-        ci_stat$Jhat  = out$pivots > nrow(dat$X)^(1/3)  # Estimated model
-        ci_stat$tp    = sum(ci_stat$J & ci_stat$Jhat)
-        ci_stat$fp    = sum(!ci_stat$J & ci_stat$Jhat)
-        ci_stat$tn    = sum(!ci_stat$J & !ci_stat$Jhat)
-        ci_stat$fn    = sum(ci_stat$J & !ci_stat$Jhat)
-        ci_stat$prec  = ci_stat$tp / sum(ci_stat$Jhat)
-        ci_stat$rec   = ci_stat$tp / sum(ci_stat$J)
-        ci_stat$f1    = 2 / (1 / ci_stat$prec + 1 / ci_stat$rec)
+        ci_stat$Jhat  = out$pivots > g(n = N, u = 1/3)  # Estimated model
+        ci_stat$tp    = sum(ci_stat$J & ci_stat$Jhat)   # True positives
+        ci_stat$fp    = sum(!ci_stat$J & ci_stat$Jhat)  # False positives
+        ci_stat$tn    = sum(!ci_stat$J & !ci_stat$Jhat) # True negatives
+        ci_stat$fn    = sum(ci_stat$J & !ci_stat$Jhat)  # False negatives
+        ci_stat$prec  = ci_stat$tp / sum(ci_stat$Jhat)  # Precision
+        ci_stat$rec   = ci_stat$tp / sum(ci_stat$J)     # Recall
+        ci_stat$f1    = 2 / (1 / ci_stat$prec + 1 / ci_stat$rec) # F1 score
         return(ci_stat)
     }
     
