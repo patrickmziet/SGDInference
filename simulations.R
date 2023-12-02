@@ -460,7 +460,7 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
                "naive"     = n^u,
                "enhanced1" = n^u + exp(1 / (1 - 2 * u) - 1) - 2,
                "enhanced2" = n^u - (1 - 4 * u) / (1 - 2 * u),
-               "dBIC"      = sqrt((n^(1/n) - 1) * (n - p))
+               "dBIC"      = sqrt((n^(1/n) - 1) * (n - p)),
                stop("unknown type"))
     }
     
@@ -473,7 +473,7 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
         ci_stat$len   = mean(out$ci[ ,2] - out$ci[ ,1]) # average CI length
         ci_stat$l2    = L2.p(dat$theta_star, out$est)   # L2 norm ||truth - estimate||_2
         ci_stat$J     = dat$theta_star != 0             # True model
-        ci_stat$Jhat  = out$pivots > g(n = N, u = 1/3)  # Estimated model
+        ci_stat$Jhat  = out$pivots > g(n=N, u=1/3, p=p, type="dBIC")  # Estimated model
         ci_stat$tp    = sum(ci_stat$J & ci_stat$Jhat)   # True positives
         ci_stat$fp    = sum(!ci_stat$J & ci_stat$Jhat)  # False positives
         ci_stat$tn    = sum(!ci_stat$J & !ci_stat$Jhat) # True negatives

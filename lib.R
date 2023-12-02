@@ -20,7 +20,7 @@ fast_sqrtm <- function(M) {
     p = ncol(M)
     I = diag(p)
     U = matrix(1, nrow=p, ncol=p)
-                                        # Check for equicorr matrix.
+    ## Check for equicorr matrix.
     equicor_obj <- function(par) {
         Mhat = par[1] * diag(p) + par[2]* U
         sum((Mhat - M)^2)
@@ -54,14 +54,14 @@ fast_sqrtm <- function(M) {
 ##    out = implicit_sgd(d, verbose=T)
 ##
 gen_data_star <- function(theta_star, X, model_name="gaussian", sigma_noise=1) {
-                                        # unload experimental params here. TODO: extend to match our current experimental setup.
-                                        # theta_star = (-1)^seq(1, p) * thetaStar_coeff * exp(-0.75 * seq(1, p))
+    ## unload experimental params here. TODO: extend to match our current experimental setup.
+    ## theta_star = (-1)^seq(1, p) * thetaStar_coeff * exp(-0.75 * seq(1, p))
     ##
     N = nrow(X)
     p = ncol(X)
-    pred = X %*% theta_star  # predictor.
-                                        # 
-    glm_link = NA # glm link function. 
+    pred = X %*% theta_star  ## predictor.
+    ## 
+    glm_link = NA ## glm link function. 
     Y = NA
                                         #
     if(model_name == "gaussian") {
@@ -85,17 +85,17 @@ gen_data_star <- function(theta_star, X, model_name="gaussian", sigma_noise=1) {
                 du_glm_link=du_glm_link, theta_star=theta_star))
 }
 
-gen_data <- function(model_name="gaussian", N=1000, p=20, 
-                     sigma_x="id", rho=.15, theta_coeff=1,
+gen_data <- function(model_name="gaussian", N=1000, p=20,
+                     s=0, sigma_x="id", rho=.15, theta_coeff=1,
                      sigma_noise=1, true_param="classic",
                      sigma_sqrt=NA) {
-                                        # unload experimental params here. TODO: extend to match our current experimental setup.
+    ## unload experimental params here. TODO: extend to match our current experimental setup.
     
-                                        # classic theta star
+    ## classic theta star
     if(true_param=="classic") {
         theta_star = (-1)^seq(1, p) * 2 * exp(-0.7 * seq(1, p))
     } else if(true_param=="inc") {
-                                        # increasing theta star 
+        ## increasing theta star 
         theta_star = seq(-3, 3, length.out=p)
     } else if(true_param=="usc") {
         theta_star = seq(0, 1, length.out=p)
@@ -106,6 +106,9 @@ gen_data <- function(model_name="gaussian", N=1000, p=20,
     } else if(true_param=="single") {
         theta_star <- rep(0, p)
         theta_star[1] = theta_coeff
+    } else if(true_param=="hht") {
+        theta_star <- rep(0, p)
+        theta_star[1:s] <- theta_coeff
     } else {
         stop("implement additional theta_star definitions")
     }
@@ -116,17 +119,17 @@ gen_data <- function(model_name="gaussian", N=1000, p=20,
         Sigma_X = (1 - rho) * diag(p) + rho * matrix(1, nrow=p, ncol=p) 
     } else if (sigma_x=="ill_cond") {
         lam = seq(0.5, 100, length.out=p)
-                                        # Q = qr.Q(qr(u %*% t(u)))
+        ## Q = qr.Q(qr(u %*% t(u)))
         Sigma_X = diag(lam)
     } else if (sigma_x=="toeplitz") {
         Sigma_X = toeplitz(0.5^seq(0, p-1))
     } else if (sigma_x=="Xdiffvar") {
                                         #lam = seq(0.1, rho, length.out=p)
         lam = seq(rho, 1, length.out=p)
-                                        # Q = qr.Q(qr(u %*% t(u)))
+        ## Q = qr.Q(qr(u %*% t(u)))
         Sigma_X = diag(lam)
     } else {
-                                        # TODO: implement different Sigma definitions here.
+        ## TODO: implement different Sigma definitions here.
         stop("implement additional Sigma_X definition")
     } 
     if(nrow(Sigma_X) != ncol(Sigma_X)) {
@@ -143,10 +146,10 @@ gen_data <- function(model_name="gaussian", N=1000, p=20,
     }
     Z = matrix(rnorm(N * p), ncol=p)
     X = t(S %*% t(Z))
-                                        # rmvnorm(N, mean=rep(0, p), sigma = Sigma_X) #covariates
-    pred = X %*% theta_star  # predictor.
-                                        # 
-    glm_link = NA # glm link function. 
+    ## rmvnorm(N, mean=rep(0, p), sigma = Sigma_X) #covariates
+    pred = X %*% theta_star  ## predictor.
+    ## 
+    glm_link = NA ## glm link function. 
     Y = NA
                                         #
     if(model_name == "gaussian") {
