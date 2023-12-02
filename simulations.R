@@ -97,11 +97,11 @@ plot_summary <- function(gamma_star, sgd_stat, glm_stat, j) {
 ## Good examples:
 ## Poisson, toeplitz, classic
 
-check_bias <- function(p, N) {
+check_bias <- function(s, p, N) {
     
     sample_data <- function(sigma_sqrt=NA) {
         fam <<- "binomial"  ## binomial for logistic
-        gen_data(p=p, N=N, sigma_noise=1,
+        gen_data(s=s, p=p, N=N, sigma_noise=1,
                  model_name = fam, 
                  sigma_x = "id", true_param="usc",
                  sigma_sqrt = sigma_sqrt)
@@ -189,11 +189,12 @@ diagnostics <- function() {
 }
 
 breakdown <- function() {
+    s = 5
     p = 50
     N = 1e4
     sample_data <- function(sigma_sqrt=NA) {
         fam <<- "binomial"  ## binomial for logistic
-        gen_data(p=p, N=N, sigma_noise=1,
+        gen_data(s=s, p=p, N=N, sigma_noise=1,
                  model_name = fam, 
                  sigma_x = "ill_cond", true_param="classic",
                  sigma_sqrt = sigma_sqrt)
@@ -300,7 +301,7 @@ conditioning_exp <- function() {
 }
 
 
-example_sim <- function(p=10, N=1e4, nreps=1e2, 
+example_sim <- function(s=5, p=10, N=1e4, nreps=1e2, 
                         model="gaussian", sigma_x="id", true_param="classic",
                         sgd_control=list(), init_control=list(),
                         verbose=TRUE) {
@@ -311,7 +312,7 @@ example_sim <- function(p=10, N=1e4, nreps=1e2,
     
     ## sample data function
     sample_data <- function(sigma_sqrt=NA) {
-        gen_data(p=p, N=N, sigma_noise=1,
+        gen_data(s=s, p=p, N=N, sigma_noise=1,
                  model_name = model, 
                  sigma_x = sigma_x, true_param=true_param,
                  sigma_sqrt = sigma_sqrt)
@@ -402,7 +403,7 @@ example_sim <- function(p=10, N=1e4, nreps=1e2,
                 nreps=nreps, gamma_star=sgd_control$gamma))
 }
 
-parallel_sim <- function(p=10, N=1e4, nreps=1e2,
+parallel_sim <- function(s=5, p=10, N=1e4, nreps=1e2,
                          model="gaussian", sigma_x="id", rho=0.15, true_param="classic",
                          sgd_control=list(), init_control=list(),
                          print_diagnostic=TRUE) {
@@ -414,7 +415,7 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
 
     ## sample data function
     sample_data <- function(sigma_sqrt=NA) {
-        gen_data(p=p, N=N, sigma_noise=1,
+        gen_data(s=s, p=p, N=N, sigma_noise=1,
                  model_name = model, 
                  sigma_x = sigma_x, rho = rho, 
                  true_param=true_param, sigma_sqrt = sigma_sqrt)
@@ -679,7 +680,7 @@ run_report <- function(model, num_experiments=20,
                     model_number, tracking_number, var, true_param, p, log(N, base=10)))
         
         ## run confidence interval experiment
-        out = parallel_sim(p=p, N=N, nreps=num_experiments, 
+        out = parallel_sim(s=s, p=p, N=N, nreps=num_experiments, 
                            model=model, sigma_x=var, true_param=true_param,
                            sgd_control=sgd_control, init_control=init_control,
                            print_diagnostic=TRUE)
@@ -715,7 +716,7 @@ run_experiments <- function(model, num_experiments=20,
         N               = exp.params$N[i]
 
         ## run confidence interval experiment
-        out = parallel_sim(p=p, N=N, nreps=num_experiments,
+        out = parallel_sim(s=s, p=p, N=N, nreps=num_experiments,
                            model=model, sigma_x=var, true_param=true_param,
                            sgd_control=sgd_control, init_control=init_control,
                            print_diagnostic=FALSE)

@@ -59,11 +59,12 @@ gen_data_star <- function(theta_star, X, model_name="gaussian", sigma_noise=1) {
     ##
     N = nrow(X)
     p = ncol(X)
+    s = sum(theta_star != 0)
     pred = X %*% theta_star  ## predictor.
     ## 
     glm_link = NA ## glm link function. 
     Y = NA
-                                        #
+    ##
     if(model_name == "gaussian") {
         glm_link = function(x) x
         du_glm_link = function(x) 1
