@@ -406,8 +406,6 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
                          model="gaussian", sigma_x="id", rho=0.15, true_param="classic",
                          sgd_control=list(), init_control=list(),
                          print_diagnostic=TRUE) {
-    ##:ess-bp-start::conditional@:##
-    browser(expr={TRUE})##:ess-bp-end:##
     print(sprintf("Model = %s, sigma_x = %s, rho = %f, params = %s, p = %d, N = %d, nreps = %d", 
                   model, sigma_x, rho, true_param, p, N, nreps)) 
     ## output statistics
@@ -454,7 +452,7 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
         sgd_control$use_gamma_half = TRUE
     }
 
-    g <- function(n, u, p=NULL, type="naive") {
+    g <- function(n, u, p=NULL, type="naive", fixed=TRUE) {
         ## Threshold function
         switch(type,
                "naive"     = n^u,
@@ -462,6 +460,82 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
                "enhanced2" = n^u - (1 - 4 * u) / (1 - 2 * u),
                "dBIC"      = sqrt((n^(1/n) - 1) * (n - p)),
                stop("unknown type"))
+    }
+
+    optimise_threshold <- function(betas, stderrs, n, p, fixed=TRUE, w_type="bicd", g_type="enhanced2") {
+        ## Compute w's
+        w <- function(..., type = "bicd") {
+            dots <- list(...)
+            with(dots,
+                 switch(type,
+                        "bicd" = do.call("w_bicd", dots),
+                        stop("unknown type")))
+        }
+
+        w_args <- function(type = "bicd") {
+            switch(type,
+                   "bicd" = c("beta", "stderr", "n", "p"),
+                   stop("unknown type"))
+        }
+
+        w_bicd <- function(...) {
+            with(list(...), {
+                tsq <- (beta / stderr)^2
+                dbic <- n * log(tsq / (n - p) + 1) - log(n)
+                if (isTRUE(fixed)) dbic < 0 else pnorm(-dbic)
+            })
+        }
+
+        res <- list(beta = betas,
+                    stderr = stderrs,
+                    n = n,
+                    p = p)
+        w_fun <- function(...) w(..., type = w_type)
+        w_args <- list()
+        w_args$beta <- res$beta
+        w_args$stderr <- res$stderr
+        w_args$n <- res$n
+        w_args$p <- res$p
+
+        ws <- do.call("w_fun", w_args)
+
+        ## Objects to use in objective
+        beta_obj <- betas
+        stderr_obj <- stderrs
+        ws_obj <- ws
+        n_obj <- n
+        p_obj <- p
+        ## Compute objective
+        u_min <- obj_min <- numeric(p_obj)
+        ## Function for g's
+        g_fun <- function(n, u) g(n = n, u = u, type = g_type)
+        ## Objective function
+        type1 <- function(beta, stderr, g, w, n, p) {
+            2 * pnorm(-g)
+        }
+
+        type2 <- function(beta, stderr, g, w, n, p, empirical = FALSE) {
+            z <- beta / stderr
+            pnorm(g - z) - pnorm(-g - z)
+        }
+
+        base_objective_empirical <- function(beta, stderr, g, w, n, p) {
+            ## convex comb of Type I and Type II error in terms of u (i.e gamma in notes)
+            w * type1(beta, stderr, g, w, n, p) +
+                (1 - w) * type2(beta, stderr, g, w, n, p, empirical = TRUE)
+        }
+        objective <- function(beta, stderr, g, w, n, p) {
+            base_objective_empirical(beta, stderr, g, w, n, p)
+        }
+        for (j in 1:p) {
+            gj <- function(u) g_fun(n = n_obj, u = u)
+            result <- optimize(function(u0) {
+                objective(beta_obj[j], stderr_obj[j], gj(u0), ws_obj[j], n_obj, p_obj)
+            }, lower = 0, upper = 0.5)
+            u_min[j] <- result$minimum
+            obj_min[j] <- result$objective
+        }
+        g_fun(n, u_min)
     }
     
     ## ci stat update
@@ -473,7 +547,9 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
         ci_stat$len   = mean(out$ci[ ,2] - out$ci[ ,1]) # average CI length
         ci_stat$l2    = L2.p(dat$theta_star, out$est)   # L2 norm ||truth - estimate||_2
         ci_stat$J     = dat$theta_star != 0             # True model
-        ci_stat$Jhat  = out$pivots > g(n=N, u=1/3, p=p, type="dBIC")  # Estimated model
+        ## Optimise threshold
+        thresholds    = optimise_threshold(betas=out$est, stderrs=out$V.sqrt, n=N, p=p, fixed=TRUE) 
+        ci_stat$Jhat  = out$pivots > thresholds  # Estimated model
         ci_stat$tp    = sum(ci_stat$J & ci_stat$Jhat)   # True positives
         ci_stat$fp    = sum(!ci_stat$J & ci_stat$Jhat)  # False positives
         ci_stat$tn    = sum(!ci_stat$J & !ci_stat$Jhat) # True negatives
@@ -524,6 +600,9 @@ parallel_sim <- function(p=10, N=1e4, nreps=1e2,
     
     ## run parallel
     print("> Computing confidence intervals in parallel..")
+    ##:ess-bp-start::conditional@:##
+browser(expr={TRUE})##:ess-bp-end:##
+    single_ci(1)
     mult_ci  = mclapply(1:nreps, function(i) single_ci(i))
     
     ## convert to sgd_stat, glm_stat

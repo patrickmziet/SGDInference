@@ -327,7 +327,7 @@ exact_inf <- function(data, sgd_control) {
     ## 4. Wald pivots 
     pivots = abs(theta_hat) / sqrt(V)
 
-    return(list(est=theta_hat, ci=cbind(lower.ci, upper.ci), pivots=pivots))
+    return(list(est=theta_hat, ci=cbind(lower.ci, upper.ci), pivots=pivots, V.sqrt=sqrt(V)))
 }
 
 glm_inf <- function(data) {
@@ -345,5 +345,5 @@ glm_inf <- function(data) {
     upper.ci = est + 1.96 * sum.coef[,2]
     lower.ci = est - 1.96 * sum.coef[,2]
     pivots = abs(est) / sum.coef[,2]
-    return(list(est=est, ci=cbind(lower.ci,upper.ci), pivots=pivots))
+    return(list(est=est, ci=cbind(lower.ci,upper.ci), pivots=pivots, V.sqrt=sum.coef[,2]))
 }
