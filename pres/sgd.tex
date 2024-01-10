@@ -1,0 +1,143 @@
+\documentclass{beamer}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usetheme{Madrid}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+
+
+\newcommand{\len}{\text{len}}
+\newcommand{\amin}{\text{argmin}}
+\newcommand{\aslv}{\arg\text{solve}}
+\newcommand{\diag}[1]{\text{diag}\{#1\}}
+\newcommand{\trace}[1]{\text{tr}\left\{#1\right\}}
+\newcommand{\expect}[1]{\mathbb{E}[#1]}
+\newcommand{\expectb}[1]{\mathbb{E}\left[#1\right]}
+\newcommand{\expectw}[2]{\mathbb{E}_{#2}\left[#1\right]}
+\newcommand{\prob}[1]{\mathbb{P}(#1)}
+\newcommand{\probb}[1]{\mathbb{P}\left(#1\right)}
+\newcommand{\var}[1]{\text{Var}(#1)}
+\newcommand{\varb}[1]{\text{Var}\left(#1\right)}
+\newcommand{\se}[1]{\text{se}(#1)}
+\newcommand{\reals}{\mathbb{R}}
+% interval
+\newcommand{\ii}[1]{A_{#1}}     
+% \newcommand{\abs}[1]{\left\lvert#1\right\rvert}
+\newcommand{\func}[2]{#1{(#2)}}
+\newcommand{\abs}[1]{\lvert#1\rvert}
+\newcommand{\absb}[1]{\left\lvert#1\right\rvert}
+\newcommand{\rank}[1]{\text{rank}(#1)}
+\newcommand{\norm}[1]{\lVert#1\rVert}
+\newcommand{\normb}[1]{\left\lVert#1\right\rVert}
+\newcommand{\LNorm}[1]{{\lVert#1\rVert}}
+\newcommand{\LTwonorm}[1]{{\lVert#1\rVert}_2}
+\newcommand{\LTwonormb}[1]{{\left\lVert#1\right\rVert}_2}
+\newcommand{\lone}{\ell_1}
+\newcommand{\ltwo}{\ell_2}
+\newcommand{\innerprod}[2]{\left\langle#1,#2\right\rangle}
+\renewcommand{\dim}[1]{\text{dim}{\left(#1\right)}}
+\newcommand{\doubleline}[2]{\begin{tabular}{@{}l@{}} #1 \\ #2\end{tabular}}
+\newcommand{\tripleline}[3]{\begin{tabular}{@{}l@{}} #1 \\ #2\\ #3\end{tabular}}
+\newcommand{\quadline}[4]{\begin{tabular}{@{}l@{}} #1 \\ #2\\ #3\\ #4\end{tabular}}
+\newcommand{\abbrv}[2]{#1 (#2)}
+\newcommand{\pckg}[1]{\texttt{#1}}
+
+% Notation
+\newcommand{\trst}{R}
+\newcommand{\trcard}{r}
+\newcommand{\trcoef}{{\beta^*}}
+\newcommand{\Lassoest}{\hat{\beta}(\lambda)}
+\newcommand{\Lassoestarg}[1]{\hat{\beta}(#1)}
+\newcommand{\modelset}{\mathcal{M}}
+\newcommand{\inprob}{\overset{p}{\to}}
+\newcommand{\indist}{\overset{d}{\to}}
+
+
+%Information to be included in the title page:
+\title[``Plus/minus'' CIs]{``Plus/minus'' confidence intervals and thresholding}
+\author[]{P. Zietkiewicz}
+\date{\today}
+
+
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}
+	\frametitle{Table of contents}
+	\tableofcontents
+\end{frame}
+
+\begin{frame}
+  \frametitle{Summary of~\citet{chee:2023}}
+  \begin{itemize}
+  \item $(Y, X) \in \reals^d \times \reals^p$ and $D_N = \{(Y_i, X_i): i=1,\dots,N\}$
+    \begin{align*}
+      \theta_* &= \amin_{\theta \in \Theta} \expect{\ell(\theta, Y, X)}\\
+      \hat{\theta}_N &= \amin_{\theta \in \Theta} \sum_{i=1}^N\ell(\theta, Y_i, X_i)\\
+      F_* &= \expect{\nabla \ell(\theta, Y, X) \nabla \ell(\theta, Y, X)^\top}\\
+    \end{align*}
+  \item SGD: $\theta_n = \theta_{n-1} - \gamma_n \nabla \ell(\theta_{n-1}; Y_{i}, X_{i})$ for $i=1,\dots,N$ and $\gamma_n$ is the learning rate typically $\gamma_n = \gamma_1 / n$. Let $\theta_N$ be the one-pass estimator of $\theta_*$.
+  \item Advantages of one-pass over multi-pass: (1) Asymptotic covariance matrix is known in closed form (2) Covariance matrix can be bounded by a factor that depends only on the learning rate $\gamma_1$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Summary of~\citet{chee:2023}}
+\begin{itemize}
+\item Propose the SGD-based CIs for each component $\theta_{*,j}$
+  \begin{align*}
+    \theta_{N,j} \pm 2\sqrt{\frac{\gamma_1^*}{N}} \text{ for } j=1,\dots,p.
+  \end{align*}
+\item Define $\Sigma_* = \gamma_1^2 {(2 \gamma_1 F_* - I)}^{-1} F_*$ where $\gamma_1$ is large enough such that $2\gamma_1 F_* - I \succ 0$. And has eigenvalues
+  \begin{align*}
+    \text{eigen}(\Sigma_*) = \{\frac{2\gamma_1^2 \lambda_j}{2\gamma_1\lambda_j - 1} : j=1,\dots,p\}
+  \end{align*}
+  where $\lambda_j$ is the $j$th eigenvalue of $F_*$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Summary of~\citet{chee:2023}}
+  Results:
+  \begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.25]{31.png}
+    \includegraphics[scale=0.25]{32.png}
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Summary of~\citet{chee:2023}}
+  Selecting $\gamma_1^*$:
+  \begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.25]{s1.png}
+    \includegraphics[scale=0.25]{s2.png}
+  \end{figure}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Thresholding and SGD}
+  \begin{itemize}
+  \item In the context of thresholding we define the pivots
+    \begin{align*}
+      \frac{\hat{\beta}_j}{\sqrt{\frac{\gamma_1^*}{N}}}
+    \end{align*}
+    where we have the usual behaviour for $\hat{\beta}_j$ and the same behaviour from $\sqrt{\frac{\gamma_1^*}{N}} = O(N^{-1/2})$.
+  \item Seems to work.
+  \item Next steps: implementing an iterative version so we can build confidence sets. 
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{References}
+  \bibliographystyle{chicago}
+  \bibliography{sgd}
+\end{frame}
+\end{document}

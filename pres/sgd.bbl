@@ -1,0 +1,13 @@
+\begin{thebibliography}{}
+
+\bibitem[\protect\citeauthoryear{Chee, Kim, and Toulis}{Chee
+  et~al.}{2023}]{chee:2023}
+Chee, J., H.~Kim, and P.~Toulis (2023, 25--27 Apr).
+\newblock “plus/minus the learning rate”: Easy and scalable statistical
+  inference with sgd.
+\newblock In F.~Ruiz, J.~Dy, and J.-W. van~de Meent (Eds.), {\em Proceedings of
+  The 26th International Conference on Artificial Intelligence and Statistics},
+  Volume 206 of {\em Proceedings of Machine Learning Research}, pp.\
+  2285--2309. PMLR.
+
+\end{thebibliography}

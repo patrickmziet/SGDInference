@@ -600,16 +600,37 @@ parallel_sim <- function(s=5, p=10, N=1e4, nreps=1e2,
     }
     
     ## run parallel
-    print("> Computing confidence intervals in parallel..")
     ##:ess-bp-start::conditional@:##
 browser(expr={TRUE})##:ess-bp-end:##
+    print("> Computing confidence intervals in parallel..")
     single_ci(1)
     mult_ci  = mclapply(1:nreps, function(i) single_ci(i))
     
     ## convert to sgd_stat, glm_stat
     out_ci   = convert_par(mult_ci)
+    ## print("SGD and GLM model selection")
     sgd_stat = out_ci$sgd_stat
-    glm_stat = out_ci$glm_stat 
+    glm_stat = out_ci$glm_stat
+    ## nms <- c("tp", "fp", "tn", "fn", "prec", "f1")
+    ## nm <- nms[1]
+    ## print(paste0("SGD ", nm, ": ", sgd_stat[[nm]] / nreps))
+    ## print(paste0("GLM ", nm, ": ", glm_stat[[nm]] / nreps))
+    ## nm <- nms[2]
+    ## print(paste0("SGD ", nm, ": ", sgd_stat[[nm]] / nreps))
+    ## print(paste0("GLM ", nm, ": ", glm_stat[[nm]] / nreps))
+    ## nm <- nms[3]
+    ## print(paste0("SGD ", nm, ": ", sgd_stat[[nm]] / nreps))
+    ## print(paste0("GLM ", nm, ": ", glm_stat[[nm]] / nreps))
+    ## nm <- nms[4]
+    ## print(paste0("SGD ", nm, ": ", sgd_stat[[nm]] / nreps))
+    ## print(paste0("GLM ", nm, ": ", glm_stat[[nm]] / nreps))
+    ## nm <- nms[5]
+    ## print(paste0("SGD ", nm, ": ", sgd_stat[[nm]] / nreps))
+    ## print(paste0("GLM ", nm, ": ", glm_stat[[nm]] / nreps))
+    ## nm <- nms[6]
+    ## print(paste0("SGD ", nm, ": ", sgd_stat[[nm]] / nreps))
+    ## print(paste0("GLM ", nm, ": ", glm_stat[[nm]] / nreps))
+
     sgd_out = exact_inf(data, sgd_control)
     glm_out = glm_inf(data)
 
