@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2023.5.31)  4 DEC 2023 12:51
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2023.5.31)  11 JAN 2024 12:47
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -688,9 +688,39 @@ Package: inputenc 2021/02/14 v1.3d Input encoding file
 (/usr/share/texlive/texmf-dist/tex/latex/beamer/beamercolorthemeorchid.sty)
 (/usr/share/texlive/texmf-dist/tex/latex/beamer/beamerinnerthemerounded.sty)
 (/usr/share/texlive/texmf-dist/tex/latex/beamer/beamerouterthemeinfolines.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/caption/subcaption.sty
+Package: subcaption 2020/10/07 v1.3j Sub-captions (AR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption.sty
+Package: caption 2020/10/26 v3.5g Customizing captions (AR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption3.sty
+Package: caption3 2020/10/21 v2.2e caption3 kernel (AR)
+\captionmargin=\dimen284
+\captionmargin@=\dimen285
+\captionwidth=\dimen286
+\caption@tempdima=\dimen287
+\caption@indent=\dimen288
+\caption@parindent=\dimen289
+\caption@hangindent=\dimen290
+Package caption Info: beamer document class detected.
+
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption-beamer.sto
+File: caption-beamer.sto 2020/08/22 v2.0 Adaption of the caption package to the
+ beamer document classes (AR)
+))
+\c@caption@flags=\count330
+\c@continuedfloat=\count331
+Package caption Info: hyperref package is loaded.
+Package caption Info: Hyperref support is turned off
+(caption)             because hyperref has stopped early.
+)
+\c@subfigure=\count332
+\c@subtable=\count333
+)
 (/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2022-01-12 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count330
+\l__color_backend_stack_int=\count334
 \l__pdf_internal_box=\box75
 )
 (./sgd.aux)
@@ -751,16 +781,16 @@ LaTeX Font Info:    ... okay on input line 66.
 
 (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count331
-\scratchdimen=\dimen284
+\scratchcounter=\count335
+\scratchdimen=\dimen291
 \scratchbox=\box76
-\nofMPsegments=\count332
-\nofMParguments=\count333
+\nofMPsegments=\count336
+\nofMParguments=\count337
 \everyMPshowfont=\toks47
-\MPscratchCnt=\count334
-\MPscratchDim=\dimen285
-\MPnumerator=\count335
-\makeMPintoPDFobject=\count336
+\MPscratchCnt=\count338
+\MPscratchDim=\dimen292
+\MPnumerator=\count339
+\makeMPintoPDFobject=\count340
 \everyMPtoPDFconversion=\toks48
 ) (/usr/share/texlive/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
@@ -782,7 +812,7 @@ Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
 (/usr/share/texlive/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty
 Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 )
-\c@section@level=\count337
+\c@section@level=\count341
 )
 LaTeX Info: Redefining \ref on input line 66.
 LaTeX Info: Redefining \pageref on input line 66.
@@ -868,7 +898,10 @@ Dictionary: translator-numbers-dictionary, Language: English
 (/usr/share/texlive/texmf-dist/tex/latex/translator/translator-theorem-dictiona
 ry-English.dict
 Dictionary: translator-theorem-dictionary, Language: English 
-) (./sgd.nav) [1
+)
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: End \AtBeginDocument code.
+ (./sgd.nav) [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] (./sgd.toc) [2
 
@@ -922,12 +955,32 @@ Package pdftex.def Info: s2.png  used on input line 122.
 
  <./s1.png> <./s2.png>] [7
 
+]
+LaTeX Font Info:    Trying to load font information for OMS+cmss on input line 
+161.
+LaTeX Font Info:    No file OMScmss.fd. on input line 161.
+
+
+LaTeX Font Warning: Font shape `OMS/cmss/m/n' undefined
+(Font)              using `OMS/cmsy/m/n' instead
+(Font)              for symbol `textbraceleft' on input line 161.
+
+[8
+
+] [9
+
+]
+Overfull \vbox (186.9711pt too high) detected at line 216
+ []
+
+[10
+
 ] (./sgd.bbl
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\translate ' on input line 1.
 
-) [8
+) [11
 
 ]
 \tf@nav=\write6
@@ -940,33 +993,39 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 \openout8 = `sgd.snm'.
 
  (./sgd.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
 Package rerunfilecheck Info: File `sgd.out' has not changed.
 (rerunfilecheck)             Checksum: AEA4B6A8AE45636C75679C2F0DFA4493;93.
  ) 
 Here is how much of TeX's memory you used:
- 22213 strings out of 478287
- 432312 string characters out of 5849289
- 686103 words of memory out of 5000000
- 39924 multiletter control sequences out of 15000+600000
- 476365 words of font info for 53 fonts, out of 8000000 for 9000
+ 23631 strings out of 478287
+ 460262 string characters out of 5849289
+ 746070 words of memory out of 5000000
+ 41312 multiletter control sequences out of 15000+600000
+ 483762 words of font info for 80 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 128i,15n,122p,402b,562s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 128i,15n,122p,2624b,562s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/shar
 e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texli
 ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/share/texlive/tex
 mf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/share/texlive/texmf-dis
 t/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/share/texlive/texmf-dist/fonts
-/type1/public/amsfonts/cm/cmssi10.pfb></usr/share/texlive/texmf-dist/fonts/type
-1/public/amsfonts/cm/cmssi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
-fonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/c
-m/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/
-msbm10.pfb>
-Output written on sgd.pdf (8 pages, 352871 bytes).
+/type1/public/amsfonts/cm/cmss9.pfb></usr/share/texlive/texmf-dist/fonts/type1/
+public/amsfonts/cm/cmssi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmssi12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
+fonts/cm/cmssi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/
+cm/cmssi9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cms
+y10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb
+></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/
+share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/t
+exlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on sgd.pdf (11 pages, 398861 bytes).
 PDF statistics:
- 331 PDF objects out of 1000 (max. 8388607)
- 271 compressed objects within 3 object streams
- 19 named destinations out of 1000 (max. 500000)
+ 431 PDF objects out of 1000 (max. 8388607)
+ 359 compressed objects within 4 object streams
+ 25 named destinations out of 1000 (max. 500000)
  113 words of extra memory for PDF output out of 10000 (max. 10000000)
 

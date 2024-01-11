@@ -1,12 +1,17 @@
-run_sim <- function(model_name, true_param, nn, pp, ss, B, lvl, verbose = TRUE) {
+run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, verbose = TRUE) {
     ## Generate data
     data <- gen_data(model_name = model_name,
                      N = nn,
                      p = pp,
                      s = ss,
                      true_param = true_param)
-    sq <- seq.int(nn)
-    chnks <- split(sq, ceiling(seq_along(sq) / B))
+    sq1 <- seq(1, iB)
+    sq2 <- seq.int(iB + 1, nn)
+    chnks <- split(sq2, ceiling(seq_along(sq2) / B))
+    names(chnks) <- NULL
+    chnks_cp <- chnks
+    chnks[[1]] <- sq1
+    for (j in seq.int(length(chnks_cp))) chnks[[j + 1]] <- chnks_cp[[j]]
 
     init_control <- list()
     init_control$gamma.method <- "ipower"
@@ -20,7 +25,7 @@ run_sim <- function(model_name, true_param, nn, pp, ss, B, lvl, verbose = TRUE) 
     data_cp <- data
 
     for (i in seq.int(chnks)) {
-        if (verbose) print(paste0("Batch ", i, "\n"))
+        if (verbose) print(paste0("Batch ", i, "| n = ", max(chnks[[i]])))
         ## reference data
         ref <- seq(1, max(chnks[[i]]))
         data_cp$X <- data$X[ref,]
