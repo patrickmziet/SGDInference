@@ -1,11 +1,73 @@
-print_ci <- function(mm, lvl=0.95) {
+run_sim <- function(model_name, true_param, nn, pp, ss, B, lvl, verbose = TRUE) {
+    ## Generate data
+    data <- gen_data(model_name = model_name,
+                     N = nn,
+                     p = pp,
+                     s = ss,
+                     true_param = true_param)
+    sq <- seq.int(nn)
+    chnks <- split(sq, ceiling(seq_along(sq) / B))
+
+    init_control <- list()
+    init_control$gamma.method <- "ipower"
+    init_control_def <- default_init(pp)
+    for(n in names(init_control)) init_control_def[[n]] <- init_control[[n]]
+    init_control <- init_control_def
+
+    pivots <- matrix(0, nrow = length(chnks), ncol = pp)
+    Jhat <- matrix(FALSE, nrow = length(chnks), ncol = pp)
+    mdls <- NA
+    data_cp <- data
+
+    for (i in seq.int(chnks)) {
+        if (verbose) print(paste0("Batch ", i, "\n"))
+        ## reference data
+        ref <- seq(1, max(chnks[[i]]))
+        data_cp$X <- data$X[ref,]
+        data_cp$Y <- data$Y[ref]
+        N <- nrow(data_cp$X)
+        p <- ncol(data_cp$X)
+        ## Compute gammastar
+        sgd_control <- calculate_gammaStar_wrapper(data_cp, init_control=init_control)
+        gamma_star <- sgd_control$gamma
+        ## Very inefficient
+        theta_hat <- isgd_0(sgd_control$theta0, data_cp, gamma=gamma_star, 
+                            npass=1, use_permutation = FALSE)
+        psi <- get_model_psi(data_cp, theta_hat)
+
+        V <- psi * gamma_star * rep(1, p) / N
+        ## Compute pivots
+        pivots[i,] <- abs(theta_hat) / sqrt(V)
+        thresholds <- optimise_threshold(betas = theta_hat,
+                                         stderrs = sqrt(V),
+                                         n = N,
+                                         p = p,
+                                         fixed=TRUE) 
+        Jhat[i, ] <- pivots[i, ] > thresholds  # Estimated model
+        mdls[i] <- paste0("(",paste0((1:p)[Jhat[i, ]], collapse = ","),")")
+        ## Print diagnostics as iterations go on
+        if (verbose) print(mdls[i])
+        if (verbose) print_ci(mdls)
+    }
+    return(list(mdls = mdls, pivots = pivots, theta_hat = theta_hat, Jhat = Jhat))
+}
+
+print_ci <- function(mm, lvl=0.95, verbose = TRUE) {
     prps <- round(table(mm) / length(mm), 4)
     result_df <- data.frame(Value = names(prps), Proportion = as.numeric(prps))
     result_df <- result_df[order(result_df$Proportion, decreasing = TRUE), ]
     result_df$cm_prop <- cumsum(result_df$Proportion)
-    print(result_df, row.names = FALSE)
-    ci <- result_df$Value[which(result_df$cm_prop <= lvl)]
-    print(paste0("{", paste0(ci, collapse = ", "), "}"))
+    if (verbose) print(result_df, row.names = FALSE)
+    ci_ref <- which(result_df$cm_prop <= lvl)
+    if (length(ci_ref) != 0) {
+        while (result_df$cm_prop[tail(ci_ref, 1)] < lvl) {
+            ci_ref <- c(ci_ref, tail(ci_ref, 1) + 1)
+        }
+    } else {
+        ci_ref[1] <- 1
+    }
+    ci <- result_df$Value[ci_ref]
+    if (verbose) print(paste0("{", paste0(ci, collapse = ", "), "}"))
 }
 
 g <- function(n, u, p=NULL, type="naive", fixed=TRUE) {
