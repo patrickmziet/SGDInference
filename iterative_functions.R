@@ -1,4 +1,7 @@
-run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, verbose = TRUE) {
+library("brglm2")
+library("progress")
+
+run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, reest = FALSE, verbose = TRUE, prog = TRUE) {
     ## Generate data
     data <- gen_data(model_name = model_name,
                      N = nn,
@@ -21,9 +24,12 @@ run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, verbose = TR
 
     pivots <- matrix(0, nrow = length(chnks), ncol = pp)
     Jhat <- matrix(FALSE, nrow = length(chnks), ncol = pp)
+    coefs <- matrix(0, nrow = length(chnks), ncol = pp)
+    ses <- matrix(0, nrow = length(chnks), ncol = pp)
+    
     mdls <- NA
     data_cp <- data
-
+    if (prog) pb <- progress_bar$new(total = length(chnks))
     for (i in seq.int(chnks)) {
         if (verbose) print(paste0("Batch ", i, "| n = ", max(chnks[[i]])))
         ## reference data
@@ -50,11 +56,46 @@ run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, verbose = TR
                                          fixed=TRUE) 
         Jhat[i, ] <- pivots[i, ] > thresholds  # Estimated model
         mdls[i] <- paste0("(",paste0((1:p)[Jhat[i, ]], collapse = ","),")")
+        if (reest) {
+            ## Re-estimate model using IIWLS
+            ## Make a data frame
+            dd <- data.frame(data_cp$Y, data_cp$X)
+            names(dd) <- c("y", paste("X", 1:pp, sep = ""))
+            if (sum(Jhat[i, ]) > 0) {
+                mm <- paste("X", (1:pp)[Jhat[i, ]], sep = "")
+                attr(dd, "formula") <- paste0(c("y ~ -1", mm), collapse = " + ")
+                mod <- glm(attr(dd, "formula"),
+                           family = binomial(link = "logit"),
+                           data = dd,
+                           method = "brglmFit")
+               coefs[i, Jhat[i, ]] <- summary(mod)$coefficients[, 1]
+            }
+
+            ## Compute standard error
+            X <- as.matrix(dd[, -c(1)])
+            XJ <- X[, 1:ss] 
+            eta <- X %*% data$theta_star
+            phi <- 1
+            mu <- exp(-eta) / (1 + exp(-eta))
+            W <- diag(as.vector(mu * (1 - mu)))
+            FI <- t(XJ) %*% W %*% XJ / phi
+            FIinv <- solve(FI)            
+            ses[i, c(rep(TRUE, ss), rep(FALSE, pp - ss))] <- sqrt(diag(FIinv))
+
+        }
         ## Print diagnostics as iterations go on
         if (verbose) print(mdls[i])
         if (verbose) print_ci(mdls)
+        if (prog) pb$tick()
     }
-    return(list(mdls = mdls, pivots = pivots, theta_hat = theta_hat, Jhat = Jhat))
+    return(list(mdls = mdls,
+                pivots = pivots,
+                theta_hat = theta_hat,
+                Jhat = Jhat,
+                data = data,
+                coefs = coefs,
+                ses = ses,
+                theta_star = data$theta_star))
 }
 
 print_ci <- function(mm, lvl=0.95, verbose = TRUE) {

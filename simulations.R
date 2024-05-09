@@ -600,8 +600,6 @@ parallel_sim <- function(s=5, p=10, N=1e4, nreps=1e2,
     }
     
     ## run parallel
-    ##:ess-bp-start::conditional@:##
-browser(expr={TRUE})##:ess-bp-end:##
     print("> Computing confidence intervals in parallel..")
     single_ci(1)
     mult_ci  = mclapply(1:nreps, function(i) single_ci(i))

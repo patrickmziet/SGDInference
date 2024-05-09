@@ -125,7 +125,7 @@ gen_data <- function(model_name="gaussian", N=1000, p=20,
     } else if (sigma_x=="toeplitz") {
         Sigma_X = toeplitz(0.5^seq(0, p-1))
     } else if (sigma_x=="Xdiffvar") {
-                                        #lam = seq(0.1, rho, length.out=p)
+        ## lam = seq(0.1, rho, length.out=p)
         lam = seq(rho, 1, length.out=p)
         ## Q = qr.Q(qr(u %*% t(u)))
         Sigma_X = diag(lam)
