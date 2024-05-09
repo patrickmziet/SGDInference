@@ -1,0 +1,13 @@
+\beamer@slide {eq:var_select_error}{8}
+\beamer@slide {eq:dbic}{8}
+\beamer@slide {fig:ms_relaxed}{13}
+\beamer@slide {sub@fig:ms_relaxed}{13}
+\beamer@slide {fig:ms_adaptive_pen_exp=2}{13}
+\beamer@slide {sub@fig:ms_adaptive_pen_exp=2}{13}
+\beamer@slide {fig:ms_thres_w_type=bic_g_type=enhanced2_fixed=FALSE}{13}
+\beamer@slide {sub@fig:ms_thres_w_type=bic_g_type=enhanced2_fixed=FALSE}{13}
+\beamer@slide {fig:ms_thres_w_type=bic_g_type=enhanced2_fixed=TRUE}{13}
+\beamer@slide {sub@fig:ms_thres_w_type=bic_g_type=enhanced2_fixed=TRUE}{13}
+\beamer@slide {fig:combined}{13}
+\beamer@slide {eq:chee_CI}{17}
+\beamer@slide {eq:pivot_sgd}{20}
