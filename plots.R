@@ -116,6 +116,18 @@ for (k in seq.int(nrow(figure_groups))){
 ## 2. Oracle property
 load(file = file.path(outputs_path, "oracle_sgd_settings.rda"))
 
+for (k in seq.int(nrow(settings))) {
+    sett <- settings[k,]
+    sett_nm <- make_file_name(sett, "oracle_sgd")
+    load(file = file.path(outputs_path, sett_nm))
+    ls()
+    str(stats)
+    wald_stats <- with(stats, (
+        t(apply(X = coefs,
+                MARGIN = 1,
+                FUN = function(x) x - theta_star)) / ses)[,1:sett$s]
+        )
+}
 
 
 ## 3. Coverage of these confidence sets for one-pass SGD
