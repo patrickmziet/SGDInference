@@ -1,8 +1,19 @@
 library("brglm2")
 library("progress")
 
-run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, reest = FALSE, verbose = TRUE, prog = TRUE) {
+run_sim <- function(model_name,
+                    true_param,
+                    nn,
+                    pp,
+                    ss,
+                    iB,
+                    B,
+                    lvl,
+                    verbose = TRUE,
+                    prog = TRUE) {
     ## Generate data
+    ##:ess-bp-start::conditional@:##
+browser(expr={TRUE})##:ess-bp-end:##
     data <- gen_data(model_name = model_name,
                      N = nn,
                      p = pp,
@@ -30,6 +41,9 @@ run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, reest = FALS
     mdls <- NA
     data_cp <- data
     if (prog) pb <- progress_bar$new(total = length(chnks))
+    ## Compute gammastar
+    sgd_control <- calculate_gammaStar_wrapper(data_cp, init_control=init_control)
+    gamma_star <- sgd_control$gamma
     for (i in seq.int(chnks)) {
         if (verbose) print(paste0("Batch ", i, "| n = ", max(chnks[[i]])))
         ## reference data
@@ -38,9 +52,6 @@ run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, reest = FALS
         data_cp$Y <- data$Y[ref]
         N <- nrow(data_cp$X)
         p <- ncol(data_cp$X)
-        ## Compute gammastar
-        sgd_control <- calculate_gammaStar_wrapper(data_cp, init_control=init_control)
-        gamma_star <- sgd_control$gamma
         ## Very inefficient
         theta_hat <- isgd_0(sgd_control$theta0, data_cp, gamma=gamma_star, 
                             npass=1, use_permutation = FALSE)
@@ -56,33 +67,6 @@ run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, reest = FALS
                                          fixed=TRUE) 
         Jhat[i, ] <- pivots[i, ] > thresholds  # Estimated model
         mdls[i] <- paste0("(",paste0((1:p)[Jhat[i, ]], collapse = ","),")")
-        if (reest) {
-            ## Re-estimate model using IIWLS
-            ## Make a data frame
-            dd <- data.frame(data_cp$Y, data_cp$X)
-            names(dd) <- c("y", paste("X", 1:pp, sep = ""))
-            if (sum(Jhat[i, ]) > 0) {
-                mm <- paste("X", (1:pp)[Jhat[i, ]], sep = "")
-                attr(dd, "formula") <- paste0(c("y ~ -1", mm), collapse = " + ")
-                mod <- glm(attr(dd, "formula"),
-                           family = binomial(link = "logit"),
-                           data = dd,
-                           method = "brglmFit")
-               coefs[i, Jhat[i, ]] <- summary(mod)$coefficients[, 1]
-            }
-
-            ## Compute standard error
-            X <- as.matrix(dd[, -c(1)])
-            XJ <- X[, 1:ss] 
-            eta <- X %*% data$theta_star
-            phi <- 1
-            mu <- exp(-eta) / (1 + exp(-eta))
-            W <- diag(as.vector(mu * (1 - mu)))
-            FI <- t(XJ) %*% W %*% XJ / phi
-            FIinv <- solve(FI)            
-            ses[i, c(rep(TRUE, ss), rep(FALSE, pp - ss))] <- sqrt(diag(FIinv))
-
-        }
         ## Print diagnostics as iterations go on
         if (verbose) print(mdls[i])
         if (verbose) print_ci(mdls)
@@ -97,6 +81,118 @@ run_sim <- function(model_name, true_param, nn, pp, ss, iB, B, lvl, reest = FALS
                 ses = ses,
                 theta_star = data$theta_star))
 }
+
+
+
+
+## run_sim <- function(model_name,
+##                     true_param,
+##                     nn,
+##                     pp,
+##                     ss,
+##                     iB,
+##                     B,
+##                     lvl,
+##                     reest = FALSE,
+##                     verbose = TRUE,
+##                     prog = TRUE) {
+##     ## Generate data
+##     data <- gen_data(model_name = model_name,
+##                      N = nn,
+##                      p = pp,
+##                      s = ss,
+##                      true_param = true_param)
+##     sq1 <- seq(1, iB)
+##     sq2 <- seq.int(iB + 1, nn)
+##     chnks <- split(sq2, ceiling(seq_along(sq2) / B))
+##     names(chnks) <- NULL
+##     chnks_cp <- chnks
+##     chnks[[1]] <- sq1
+##     for (j in seq.int(length(chnks_cp))) chnks[[j + 1]] <- chnks_cp[[j]]
+
+##     init_control <- list()
+##     init_control$gamma.method <- "ipower"
+##     init_control_def <- default_init(pp)
+##     for(n in names(init_control)) init_control_def[[n]] <- init_control[[n]]
+##     init_control <- init_control_def
+
+##     pivots <- matrix(0, nrow = length(chnks), ncol = pp)
+##     Jhat <- matrix(FALSE, nrow = length(chnks), ncol = pp)
+##     coefs <- matrix(0, nrow = length(chnks), ncol = pp)
+##     ses <- matrix(0, nrow = length(chnks), ncol = pp)
+    
+##     mdls <- NA
+##     data_cp <- data
+##     if (prog) pb <- progress_bar$new(total = length(chnks))
+##     for (i in seq.int(chnks)) {
+##         if (verbose) print(paste0("Batch ", i, "| n = ", max(chnks[[i]])))
+##         ## reference data
+##         ref <- seq(1, max(chnks[[i]]))
+##         data_cp$X <- data$X[ref,]
+##         data_cp$Y <- data$Y[ref]
+##         N <- nrow(data_cp$X)
+##         p <- ncol(data_cp$X)
+##         ## Compute gammastar
+##         sgd_control <- calculate_gammaStar_wrapper(data_cp, init_control=init_control)
+##         gamma_star <- sgd_control$gamma
+##         ## Very inefficient
+##         theta_hat <- isgd_0(sgd_control$theta0, data_cp, gamma=gamma_star, 
+##                             npass=1, use_permutation = FALSE)
+##         psi <- get_model_psi(data_cp, theta_hat)
+
+##         V <- psi * gamma_star * rep(1, p) / N
+##         ## Compute pivots
+##         pivots[i,] <- abs(theta_hat) / sqrt(V)
+##         thresholds <- optimise_threshold(betas = theta_hat,
+##                                          stderrs = sqrt(V),
+##                                          n = N,
+##                                          p = p,
+##                                          fixed=TRUE) 
+##         Jhat[i, ] <- pivots[i, ] > thresholds  # Estimated model
+##         mdls[i] <- paste0("(",paste0((1:p)[Jhat[i, ]], collapse = ","),")")
+##         if (reest) {
+##             ## Re-estimate model using IIWLS
+##             ## Make a data frame
+##             dd <- data.frame(data_cp$Y, data_cp$X)
+##             names(dd) <- c("y", paste("X", 1:pp, sep = ""))
+##             if (sum(Jhat[i, ]) > 0) {
+##                 mm <- paste("X", (1:pp)[Jhat[i, ]], sep = "")
+##                 attr(dd, "formula") <- paste0(c("y ~ -1", mm), collapse = " + ")
+##                 mod <- glm(attr(dd, "formula"),
+##                            family = binomial(link = "logit"),
+##                            data = dd,
+##                            method = "brglmFit")
+##                coefs[i, Jhat[i, ]] <- summary(mod)$coefficients[, 1]
+##             }
+
+##             ## Compute standard error
+##             X <- as.matrix(dd[, -c(1)])
+##             XJ <- X[, 1:ss] 
+##             eta <- X %*% data$theta_star
+##             phi <- 1
+##             mu <- exp(-eta) / (1 + exp(-eta))
+##             W <- diag(as.vector(mu * (1 - mu)))
+##             FI <- t(XJ) %*% W %*% XJ / phi
+##             FIinv <- solve(FI)            
+##             ses[i, c(rep(TRUE, ss), rep(FALSE, pp - ss))] <- sqrt(diag(FIinv))
+
+##         }
+##         ## Print diagnostics as iterations go on
+##         if (verbose) print(mdls[i])
+##         if (verbose) print_ci(mdls)
+##         if (prog) pb$tick()
+##     }
+##     return(list(mdls = mdls,
+##                 pivots = pivots,
+##                 theta_hat = theta_hat,
+##                 Jhat = Jhat,
+##                 data = data,
+##                 coefs = coefs,
+##                 ses = ses,
+##                 theta_star = data$theta_star))
+## }
+
+
 
 print_ci <- function(mm, lvl=0.95, verbose = TRUE) {
     prps <- round(table(mm) / length(mm), 4)

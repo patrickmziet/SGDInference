@@ -110,6 +110,10 @@ gen_data <- function(model_name="gaussian", N=1000, p=20,
     } else if(true_param=="hht") {
         theta_star <- rep(0, p)
         theta_star[1:s] <- theta_coeff
+    } else if(true_param=="hht-switch") {
+        theta_star <- rep(0, p)
+        theta_star[1:s] <- (-1)^seq(1, s) * theta_coeff
+
     } else {
         stop("implement additional theta_star definitions")
     }
