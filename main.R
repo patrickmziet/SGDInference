@@ -45,7 +45,7 @@ for (k in seq.int(nrow(settings))) {
     }
     ## Define sim_vals
     n_max <- 1000
-    if ()
+    if (sett$family == "binomial") n_max <- 3000 # increase number of observations for binomial example
     sim_vals <- round(exp(seq(log(sett$p * 2), log(n_max), length = 10)))
     stats <- list()
     stats$sett <- sett
