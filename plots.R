@@ -116,6 +116,10 @@ for (k in seq.int(nrow(figure_groups))){
 ## 2. Oracle property
 load(file = file.path(outputs_path, "oracle_sgd_settings.rda"))
 
+
+colsT <- rainbow_hcl(1, alpha = 0.7)
+colsF <- rainbow_hcl(1, alpha = 1)
+
 for (k in seq.int(nrow(settings))) {
     sett <- settings[k,]
     sett_nm <- make_file_name(sett, "oracle_sgd")
@@ -127,6 +131,19 @@ for (k in seq.int(nrow(settings))) {
                 MARGIN = 1,
                 FUN = function(x) x - theta_star)) / ses)[,1:sett$s]
         )
+    head(wald_stats)
+    par(mfrow = c(3, 2))
+    for (j in seq.int(sett$s)) {
+        xlims <- range(wald_stats[, j]) + c(-1, 1)
+        makePlot(wald_stats[, j],
+                 ref0 = rep(FALSE, nrow(wald_stats)),
+                 ylim = c(0, 1),
+                 xlim = xlims,
+                 col = colsT[1],
+                 border = colsF[1],
+                 main = paste0("Variable ", j))
+    }
+    
 }
 
 
@@ -147,8 +164,6 @@ for (k in seq.int(nrow(settings))) {
 ## aa <- apply(X=stats$coefs, MARGIN = 1, FUN = function(x) x - stats$theta_star)
 ## apply(X=stats$coefs, MARGIN = 2, FUN = function(x) sum(x))
 
-## colsT <- rainbow_hcl(1, alpha = 0.7)
-## colsF <- rainbow_hcl(1, alpha = 1)
 
 ## par(mfrow = c(3, 2))
 ## for (j in seq.int(5)) {

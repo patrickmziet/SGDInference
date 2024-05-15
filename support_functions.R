@@ -10,7 +10,7 @@ make_file_name <- function(x, sim_type) {
            ".rda")
 }
 
-get_gamma <- function() {
+get_gamma <- function(i, sett) {
     cnt <- 0
     isNegative <- TRUE
     while (isNegative) {

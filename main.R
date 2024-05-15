@@ -44,8 +44,10 @@ for (k in seq.int(nrow(settings))) {
         next
     }
     ## Define sim_vals
-    n_max <- 1000
-    if (sett$family == "binomial") n_max <- 3000 # increase number of observations for binomial example
+    n_max <- 700
+    if (sett$family == "binomial") {
+        n_max <- 8000 # increase number of observations for binomial example
+    }
     sim_vals <- round(exp(seq(log(sett$p * 2), log(n_max), length = 10)))
     stats <- list()
     stats$sett <- sett
@@ -96,6 +98,7 @@ settings <- expand.grid(family = c("binomial", "poisson"),
 settings <- settings |>
 subset(p < n) |>
 subset(s < p) |>
+subset(n > 2 * p) |> # ensure n is not too small relative to p
 subset(!(p == 100 & s == 25)) |>
 subset(!((family == "binomial" & true_param == "hht-switch") | (family == "poisson" & true_param == "hht")))
 rownames(settings) <- 1:nrow(settings)
@@ -105,61 +108,119 @@ save(settings, file = file.path(outputs_path, "oracle_sgd_settings.rda"))
 for (k in seq.int(nrow(settings))) {
     sett <- settings[k, ]
     sett_nm <- make_file_name(sett, "oracle_sgd")
-    cat("Iteration: ", k, "/", nrow(settings), sep = "")
+    cat("Iteration: ", k, "/", nrow(settings), "\n", sep = "")
     cat(sett_nm)
     if(file.exists(file.path(outputs_path, sett_nm))) {
-        cat("Already run")
+        cat("Already run\n")
         next
     }
+    ## TRY PARALLEL
+    system.time(
+        results <- mcmapply(function(i) {
+            res <- get_gamma(i = i, sett = sett)
+            sgd_control <- res$sgd_control
+            gamma_star <- sgd_control$gamma
+            data <- res$data
+            theta_hat <- isgd_0(sgd_control$theta0, data, gamma=gamma_star, 
+                                npass=1, use_permutation = FALSE)
+            psi <- get_model_psi(data, theta_hat)
+            V <- psi * gamma_star * rep(1, sett$p) / sett$n
+            ## Compute pivots
+            pivots <- abs(theta_hat) / sqrt(V)
+            thresholds <- optimise_threshold(betas = theta_hat,
+                                             stderrs = sqrt(V),
+                                             n = sett$n,
+                                             p = sett$p,
+                                             fixed = sett$fixed) 
+            Jhat <- pivots > thresholds  # Estimated model
+            mdls <- paste0("(",paste0((1:sett$p)[Jhat], collapse = ","),")")
+            ## Get model
+            mm <- paste("X", (1:sett$p)[Jhat], sep = "")
+            ## Re-estimate
+            dd <- data.frame(data$Y, data$X)
+            attr(dd, "formula") <- paste0(c("y ~ -1", mm), collapse = " + ")
+            names(dd) <- c("y", paste("X", 1:sett$p, sep = ""))
+            mod <- glm(attr(dd, "formula"),
+                       family = data$model,
+                       data = dd,
+                       method = "brglmFit")
+            ## coefs[i, Jhat] <- summary(mod)$coefficients[,1]
+            X <- as.matrix(dd[, -c(1)])
+            XJ <- X[, 1:sett$s] 
+            eta <- X %*% data$theta_star
+            phi <- 1
+            if (sett$family == "binomial") {
+                mu <- exp(-eta) / (1 + exp(-eta))
+                W <- diag(as.vector(mu * (1 - mu)))
+            } else if (sett$family == "poisson") {
+                mu <- exp(eta)
+                W <- diag(as.vector(mu))
+            }
+            FI <- t(XJ) %*% W %*% XJ / phi
+            FIinv <- solve(FI)            
+            ## ses[i, with(sett, c(rep(TRUE, s), rep(FALSE, p - s)))] <- sqrt(diag(FIinv))
+            ## result <- 
+            ## result$Jhat <- Jhat
+            ## result$coefs <- summary(mod)$coefficients[,1]
+            ## result$ses <- sqrt(diag(FIinv))
+            ## result
+            list(Jhat = Jhat, coefs = summary(mod)$coefficients[,1], ses = sqrt(diag(FIinv)))
+        },
+        seq.int(nsim),
+        SIMPLIFY = FALSE,
+        mc.cores = 10)
+    )
     pb <- progress_bar$new(total = nsim)
     coefs <- matrix(0, ncol = sett$p, nrow = nsim)
     ses <- matrix(0, ncol = sett$p, nrow = nsim)
-    for (i in seq.int(nsim)) {
-        res <- get_gamma()
-        sgd_control <- res$sgd_control
-        gamma_star <- sgd_control$gamma
-        data <- res$data
-        
-        theta_hat <- isgd_0(sgd_control$theta0, data, gamma=gamma_star, 
-                            npass=1, use_permutation = FALSE)
-        psi <- get_model_psi(data, theta_hat)
-        V <- psi * gamma_star * rep(1, sett$p) / sett$n
-        ## Compute pivots
-        pivots <- abs(theta_hat) / sqrt(V)
-        thresholds <- optimise_threshold(betas = theta_hat,
-                                         stderrs = sqrt(V),
-                                         n = sett$n,
-                                         p = sett$p,
-                                         fixed = TRUE) 
-        Jhat <- pivots > thresholds  # Estimated model
-        mdls <- paste0("(",paste0((1:sett$p)[Jhat], collapse = ","),")")
-        ## Get model
-        mm <- paste("X", (1:sett$p)[Jhat], sep = "")
-        ## Re-estimate
-        dd <- data.frame(data$Y, data$X)
-        attr(dd, "formula") <- paste0(c("y ~ -1", mm), collapse = " + ")
-        names(dd) <- c("y", paste("X", 1:sett$p, sep = ""))
-        mod <- glm(attr(dd, "formula"),
-                   family = data$model,
-                   data = dd,
-                   method = "brglmFit")
-        coefs[i, Jhat] <- summary(mod)$coefficients[,1]
-        X <- as.matrix(dd[, -c(1)])
-        XJ <- X[, 1:sett$s] 
-        eta <- X %*% data$theta_star
-        phi <- 1
-        if (sett$family == "binomial") {
-            mu <- exp(-eta) / (1 + exp(-eta))
-            W <- diag(as.vector(mu * (1 - mu)))
-        } else if (sett$family == "poisson") {
-            mu <- exp(eta)
-            W <- diag(as.vector(mu))
+    system.time(
+        for (i in seq.int(nsim)) {
+            res <- get_gamma(i = i,sett = sett)
+            sgd_control <- res$sgd_control
+            gamma_star <- sgd_control$gamma
+            data <- res$data
+            
+            theta_hat <- isgd_0(sgd_control$theta0, data, gamma=gamma_star, 
+                                npass=1, use_permutation = FALSE)
+            psi <- get_model_psi(data, theta_hat)
+            V <- psi * gamma_star * rep(1, sett$p) / sett$n
+            ## Compute pivots
+            pivots <- abs(theta_hat) / sqrt(V)
+            thresholds <- optimise_threshold(betas = theta_hat,
+                                             stderrs = sqrt(V),
+                                             n = sett$n,
+                                             p = sett$p,
+                                             fixed = sett$fixed) 
+            Jhat <- pivots > thresholds  # Estimated model
+            mdls <- paste0("(",paste0((1:sett$p)[Jhat], collapse = ","),")")
+            ## Get model
+            mm <- paste("X", (1:sett$p)[Jhat], sep = "")
+            ## Re-estimate
+            dd <- data.frame(data$Y, data$X)
+            attr(dd, "formula") <- paste0(c("y ~ -1", mm), collapse = " + ")
+            names(dd) <- c("y", paste("X", 1:sett$p, sep = ""))
+            mod <- glm(attr(dd, "formula"),
+                       family = data$model,
+                       data = dd,
+                       method = "brglmFit")
+            coefs[i, Jhat] <- summary(mod)$coefficients[,1]
+            X <- as.matrix(dd[, -c(1)])
+            XJ <- X[, 1:sett$s] 
+            eta <- X %*% data$theta_star
+            phi <- 1
+            if (sett$family == "binomial") {
+                mu <- exp(-eta) / (1 + exp(-eta))
+                W <- diag(as.vector(mu * (1 - mu)))
+            } else if (sett$family == "poisson") {
+                mu <- exp(eta)
+                W <- diag(as.vector(mu))
+            }
+            FI <- t(XJ) %*% W %*% XJ / phi
+            FIinv <- solve(FI)            
+            ses[i, with(sett, c(rep(TRUE, s), rep(FALSE, p - s)))] <- sqrt(diag(FIinv))
+            pb$tick()
         }
-        FI <- t(XJ) %*% W %*% XJ / phi
-        FIinv <- solve(FI)            
-        ses[i, with(sett, c(rep(TRUE, s), rep(FALSE, p - s)))] <- sqrt(diag(FIinv))
-        pb$tick()
-    }
+    )
     ## Save data
     stats <- list()
     stats$coefs <- coefs

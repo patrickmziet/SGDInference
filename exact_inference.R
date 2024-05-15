@@ -247,7 +247,7 @@ calc_gammaStar_bd <- function(data, init_control) {
 ## 2022 Hwanwoo added this method
 ### using Inverse Power Iteration
 calc_gammaStar_invpower <- function(data, init_control) {
-    print("select gammaStar with inverPower method")
+    ## print("select gammaStar with inverPower method")
 ### Learning the estimate of the theta_star when estimating the fisher matrix
     theta0 = initialize_sgd(data, init_control=init_control)
     ## Gamma(stepsize) still needs to be tuned
