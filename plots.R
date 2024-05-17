@@ -4,6 +4,7 @@ library("ggplot2")
 library("patchwork")
 source("support_functions.R")
 
+## Define colours
 base_colours <- colorspace::qualitative_hcl(6)
 ## Define paths
 experiment_path <- "~/repos/SGDInference"
@@ -115,37 +116,107 @@ for (k in seq.int(nrow(figure_groups))){
 
 ## 2. Oracle property
 load(file = file.path(outputs_path, "oracle_sgd_settings.rda"))
-
-
+## Plots for some settings
 colsT <- rainbow_hcl(1, alpha = 0.7)
 colsF <- rainbow_hcl(1, alpha = 1)
+ls()
+settings
 
-for (k in seq.int(nrow(settings))) {
-    sett <- settings[k,]
+settings_df <- as.data.frame(settings) |>
+mutate(sparsity = ifelse(s/p > 5/40, "dense", "sparse")) |>
+mutate(method = ifelse(fixed, "hard-BIC", "soft-BIC")) |>
+mutate(method_label = paste0(sigma_x, "-", method))
+
+## Group data you want to plot together
+grouped_settings <- settings_df |>
+group_by(sparsity, family, fixed, n, p, s, sigma_x) |>
+summarize()
+
+print(grouped_settings, n=42)
+
+## Group figures you want together, in this case we will have two in each figure group
+figure_groups <- grouped_settings |>
+group_by(family, sparsity) |>
+summarize()
+
+save_fig <- TRUE
+ff <- "binomial"
+hh <- TRUE
+pp <- 40
+ss <- 5
+nn <- 500
+sigma_xs <- c("id", "toeplitz", "equicor")
+wald_stats <- list()
+for (i in seq_along(sigma_xs)) {
+    sett <- settings_df |> filter(family == ff
+                                  & n == nn
+                                  & p == pp
+                                  & s == ss
+                                  & sigma_x == sigma_xs[i]
+                                  & fixed == hh)
+
     sett_nm <- make_file_name(sett, "oracle_sgd")
     load(file = file.path(outputs_path, sett_nm))
-    ls()
-    str(stats)
-    wald_stats <- with(stats, (
+    wald_stats[[sigma_xs[i]]] <- with(stats, (
         t(apply(X = coefs,
                 MARGIN = 1,
                 FUN = function(x) x - theta_star)) / ses)[,1:sett$s]
         )
-    head(wald_stats)
-    par(mfrow = c(3, 2))
-    for (j in seq.int(sett$s)) {
-        xlims <- range(wald_stats[, j]) + c(-1, 1)
-        makePlot(wald_stats[, j],
-                 ref0 = rep(FALSE, nrow(wald_stats)),
-                 ylim = c(0, 1),
-                 xlim = xlims,
-                 col = colsT[1],
-                 border = colsF[1],
-                 main = paste0("Variable ", j))
-    }
-    
 }
 
+fig_file <- file.path(outputs_path,
+                      paste0("oracle_sgd",
+                             "_family", ff,
+                             "_fixed", hh,
+                             "_n", nn,
+                             "_p", pp,
+                             "_s", ss,
+                             ".pdf"))
+
+if (save_fig) pdf(fig_file, width = 10, height = 10/sqrt(2))
+n_mthds <- length(wald_stats)
+par(mfcol = c(n_mthds, 6), mar = c(2,2,2,2), oma = c(3,1,1,1))
+colsT <- rainbow_hcl(n_mthds, alpha = 0.7)
+colsF <- rainbow_hcl(n_mthds, alpha = 1)
+mthds_full <- sigma_xs
+for (k in seq.int(wald_stats)) {
+    plot(0, 0, type = "n", xlab = "", ylab = "", bty = "n", xaxt = "n", yaxt = "n")
+    text(0, 0, mthds_full[k])
+}
+nsim <- nrow(stats$coefs)
+for (j in seq.int(sett$s)) {
+    xlims <- range(sapply(X = wald_stats, FUN = function(x) range(x[,j]))) + c(-1, 1)
+    mn <- paste0("Variable ", j)
+    makePlot(wald_stats[["id"]][,j],
+             ref0 = rep(FALSE, nsim),
+             ylim = c(0, 1),
+             xlim = xlims,
+             col = colsT[1],
+             border = colsF[1],
+             main = mn)
+    makePlot(wald_stats[["toeplitz"]][,j],
+             ref0 = rep(FALSE, nsim),
+             ylim = c(0, 1),
+             xlim = xlims,
+             col = colsT[2],
+             border = colsF[2],
+             main = "")
+    makePlot(wald_stats[["equicor"]][,j],
+             ref0 = rep(FALSE, nsim),
+             ylim = c(0, 1),
+             xlim = xlims,
+             col = colsT[3],
+             border = colsF[3],
+             main = "")
+}
+mtext("Distribution of non-zero coefficients",
+      side = 1,
+      outer = TRUE,
+      line = 1)
+if (save_fig) dev.off()
+
+
+## Tables for other settings
 
 ## 3. Coverage of these confidence sets for one-pass SGD
 

@@ -14,6 +14,7 @@ get_gamma <- function(i, sett) {
     cnt <- 0
     isNegative <- TRUE
     while (isNegative) {
+        cnt <- cnt + 1
         set.seed(i + (cnt - 1) * nsim)
         data <- gen_data(model_name = as.character(sett$family),
                          sigma_x = as.character(sett$sigma_x),
