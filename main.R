@@ -59,7 +59,7 @@ for (k in seq.int(nrow(settings))) {
         sett$n <- sim_vals[j]
         mdls_j <- matrix(FALSE, ncol = sett$p, nrow = nsim) # models for n_j in sim_vals
         for (i in seq.int(nsim)) {
-            res <- get_gamma()
+            res <- get_gamma(i = i,sett = sett)
             sgd_control <- res$sgd_control
             gamma_star <- sgd_control$gamma
             data <- res$data
@@ -122,7 +122,6 @@ for (k in seq.int(nrow(settings))) {
     coefs <- matrix(0, ncol = sett$p, nrow = nsim)
     ses <- matrix(0, ncol = sett$p, nrow = nsim)
     for (i in seq.int(nsim)) {
-        if (i < 189) next
         res <- get_gamma(i = i,sett = sett)
         sgd_control <- res$sgd_control
         gamma_star <- sgd_control$gamma
@@ -199,7 +198,6 @@ rownames(settings) <- 1:nrow(settings)
 settings
 save(settings, file = file.path(outputs_path, "cov_sgd_settings.rda"))
 
-
 ## Run simulations
 for (k in seq.int(nrow(settings))) {
     sett <- settings[k,]
@@ -215,9 +213,10 @@ for (k in seq.int(nrow(settings))) {
     stats$call <- sett_nm
     stats$mdls <- list()
     ## Loop along sim_vals
+    pb <- progress_bar$new(total = nsim)
     for (i in seq.int(nsim)) {
         mdls_i <- matrix(FALSE, ncol = sett$p, nrow = B) # models for n_i in nsim
-        res <- get_gamma()
+        res <- get_gamma(i = i,sett = sett)
         sgd_control <- res$sgd_control
         gamma_star <- sgd_control$gamma
         data <- res$data
@@ -241,6 +240,7 @@ for (k in seq.int(nrow(settings))) {
             mdls_i[b, ] <- Jhat
         }
         stats$mdls[[i]] <- mdls_i
+        pb$tick()
     }
     save(stats, file = file.path(outputs_path, sett_nm))
 }
