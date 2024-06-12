@@ -10,7 +10,9 @@ make_file_name <- function(x, sim_type) {
            ".rda")
 }
 
-get_gamma <- function(i, sett) {
+
+
+get_gamma <- function(i, sett, imth = "ipower") {
     cnt <- 0
     isNegative <- TRUE
     while (isNegative) {
@@ -24,7 +26,7 @@ get_gamma <- function(i, sett) {
                          true_param = as.character(sett$true_param))
 
         init_control <- list()
-        init_control$gamma.method <- "ipower"
+        init_control$gamma.method <- imth
         init_control_def <- default_init(sett$p)
         for(ii in names(init_control)) init_control_def[[ii]] <- init_control[[ii]]
         init_control <- init_control_def
@@ -74,3 +76,88 @@ makePlot <- function(est, ref0, ylim = NULL, xlim = NULL, main = "", col = NULL,
     lines(x = xx, y = dnorm(x = xx) * (1 - prop0))
 }
 
+## Functions from glmodsel
+get_file <- function(sim_axis, family, link, n, p, s, rho, base_name) {
+    ss <- paste0(paste(base_name,
+                       sim_axis,
+                       paste0("family-", family),
+                       paste0("link-", link),
+                       paste0("n", n),
+                       paste0("p", p),
+                       paste0("s", s),
+                       paste0("rho", sub("\\.", "", format(as.numeric(rho), nsmall = 2))), sep = "-"),
+                 ".rda")
+    ## Remove first occurence of "-" in the above string
+    sub("-", "", ss, fixed = TRUE)
+}
+
+hline <- function(y = 0, color = "black", dash = "dot") {
+    list(
+        type = "line",
+        x0 = 0,
+        x1 = 1,
+        xref = "paper",
+        y0 = y,
+        y1 = y,
+        line = list(color = color, dash = dash),
+        opacity = 0.2
+    )
+}
+
+get_object <- function(img, object) {
+    if (file.exists(img)) {
+        load(img)
+        get(object)
+    } else {
+        stop("Setting is not available")
+    }
+}
+
+make_file <- function(sim_axis, family, link, n, p, s, rho=0, base_name="summary_sgd_") {
+    ff1 <- get_file(sim_axis = sim_axis,
+                    family = family,
+                    link = link,
+                    n = n,
+                    p = p,
+                    s = s,
+                    rho = rho,
+                    base_name = base_name)
+    file.path(outputs_path, ff1)
+}
+
+make_file_name_msglm <- function(ll, base_name, fig = FALSE) {
+    ftype <- ".rda"
+    if (isTRUE(fig)) ftype <- ".pdf"
+    paste0(base_name,
+           "_","family", ll$family,
+           "_","link", ll$link,
+           "_", "n", ll$n,
+           "_","p", ll$p,
+           "_","s", ll$s,
+           "_","rho", ll$rho,
+           "_", "nu", ll$nu,
+           ftype)
+}
+
+
+conf_set <- function(res, lev) {
+    n_reps <- ncol(res)
+    active_sets(res) |>
+    table() |>
+    sort(decreasing = TRUE) |>
+    (\(x) cumsum(c(x)/n_reps))() |>
+    (\(x) x[x <= lev])()
+}
+
+active_sets <- function(mat) {
+    if (is.null(rn <- rownames(mat))) {
+        rn <- 1:ncol(mat)
+    }
+    apply(mat, 2, function(x) paste0(rn[which(x)], collapse = ","))
+}
+
+make_row_tex <- function(vec) {
+    row_tex <- paste(vec, collapse = " & ")
+    row_tex <- paste0(row_tex, " \\\\ \n")
+    return(row_tex)
+}
