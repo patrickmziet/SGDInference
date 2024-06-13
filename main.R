@@ -659,8 +659,9 @@ for (i in seq.int(nsim)) {
 
     ## Get confidence set on the fly
 
+    ## Get confidence set via bootstrap SGD
+
     ## Get confidence set via bootstrap glmodsel
-    
 }
 
 
