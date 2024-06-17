@@ -612,7 +612,7 @@ for (k in seq.int(nrow(kappa_groups))) {
 
 ## 3. Coverage of these confidence sets for one-pass SGD
 ## Using lmin or inversepower
-tuning <- "lmin" # "ipower" or "lmin"
+tuning <- "ipower" # "ipower" or "lmin"
 fn_prefix <- "cov_sgd"
 if (tuning == "lmin") fn_prefix <- paste0(fn_prefix, "_", tuning)
 load(file = file.path(outputs_path, paste(fn_prefix, "settings.rda", sep = "_")))
@@ -676,4 +676,44 @@ print_ci(mdls_hard)
 ## Soft thresholding
 print_ci(mdls_soft)
 
+
+## Comparing confidence sets
+load(file = file.path(outputs_path, "diabetes_comp_coverage.rda"))
+
+conf_set(all_models$otf_mdls_hard[[1]], 0.95)
+
+res <- lapply(X = all_models$mdls_1pass_hard, FUN = function(x) {
+    cs <- conf_set(t(x), 0.95)
+    list(is_in = true_mod %in% names(cs), card = length(cs))
+})
+cvrg <- mean(sapply(X = res, FUN = function(x) x$is_in))
+av_card <- mean(sapply(X = res, FUN = function(x) x$card))
+
+cov_stats <- function(a, tm) {
+    lev <- 0.95
+    lapply(X = a, FUN = function(x) {
+        n_reps <- length(x)
+        cs <- x |>
+        table() |>
+        sort(decreasing = TRUE) |>
+        (\(x) cumsum(c(x)/n_reps))() |>
+        (\(x) x[x <= lev])()
+    list(is_in = tm %in% names(cs), card = length(cs))
+})
+}
+
+print_cov_stats <- function(l) {
+    cvrg <- mean(sapply(X = l, FUN = function(x) x$is_in))
+    av_card <- mean(sapply(X = l, FUN = function(x) x$card))
+    cat("Coverage: ", cvrg, "Cardinality: ", av_card, "\n")
+}
+
+res <- cov_stats(all_models$mdls_1pass_hard, tm = all_models$true_mod)
+print_cov_stats(res)
+res <- cov_stats(all_models$mdls_1pass_soft, tm = all_models$true_mod)
+print_cov_stats(res)
+res <- cov_stats(all_models$otf_mdls_hard, tm = all_models$true_mod)
+print_cov_stats(res)
+res <- cov_stats(all_models$otf_mdls_soft, tm = all_models$true_mod)
+print_cov_stats(res)
 

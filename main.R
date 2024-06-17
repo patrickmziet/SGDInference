@@ -6,7 +6,7 @@ source("iterative_functions.R")
 source("support_functions.R")
 ## Load libraries
 library("progress")
-
+library("enrichwith")
 ## Set any environment variables
 ## Define paths
 experiment_path <- "~/repos/SGDInference"
@@ -645,23 +645,174 @@ print_ci(mdls_hard)
 ## Soft thresholding
 print_ci(mdls_soft)
 
-
 ## Coverage of diabetes example
-res <- glm()
-## Pick Model: Diab. ∼ 1 + Gluc. + BMI
+diabetes <- read.csv(file.path(experiment_path, "diabetes.csv"))
+## Main effects
+## change name of Outcome to "y"
+names(diabetes)[which(names(diabetes) == "Outcome")] <- "Y"
+mf <- model.frame(Y ~ 1 + ., data = diabetes)
+X <- model.matrix(mf, data = diabetes)
+scale_X <- TRUE
+if (scale_X) {
+    diabetes[, which(names(diabetes) != "Y")] <- scale(X[, -c(1)])
+    X[, -c(1)] <- scale(X[, -c(1)])
+}
+Y <- model.response(mf)
+diabetes_main <- diabetes
+## diabetes_df <- data.frame(Y = Y, XX)
+## attr(diabetes_df, "formula") <- formula(mf)
+attr(diabetes_main, "formula") <- formula(mf)
+n <- nrow(X)
+p <- ncol(X)
+
+## Pick Model: Diab. ∼ 1 + Gluc. + BMI from
+true_mod_fit <- glm(formula = Y ~ 1 + Glucose + BMI,
+                       family = "binomial",
+                       data = diabetes_main)
+ML_ests <- summary(true_mod_fit)$coefficients[, "Estimate"]
+true_beta <- rep(0, p)
+names(true_beta) <- colnames(X)
+true_beta[names(ML_ests)] <- ML_ests
+print(true_beta)
+
+full_mod <- glm(formula = Y ~ .,
+                family = "binomial",
+                data = diabetes_main)
+
+enriched_glm <- enrich(full_mod, with = "auxiliary functions")
+Y <- enriched_glm$auxiliary_functions$simulate(coefficients = true_beta)
+
+## Build data set for SGD
+data <- list()
+data$X <- X
+data$Y <- Y
+data$model <- "binomial"
+## Run gen_data to get link functions
+zz <- gen_data(model_name = "binomial",
+                 N = n,
+                 p = p,
+                 s = sum(true_beta != 0),
+                 true_param = "hht")
+data$glm_link <- zz$glm_link
 
 ## Set nsim
 nsim <- 500
+## Set number of bootstrap samples
 B <- 200
-for (i in seq.int(nsim)) {
-    set.seed(i)
-    ## Generate new response variable
 
-    ## Get confidence set on the fly
+## Settings for on-the-fly confidence sets
+init_B <- 1
+Bi <- 1
+sq1 <- seq(1, init_B)
+sq2 <- seq.int(init_B + 1, n)
+chnks <- split(sq2, ceiling(seq_along(sq2) / Bi))
+names(chnks) <- NULL
+chnks_cp <- chnks
+chnks[[1]] <- sq1
+for (j in seq.int(length(chnks_cp))) chnks[[j + 1]] <- chnks_cp[[j]]
+init_control <- list()
+init_control$gamma.method <- "ipower"
+init_control_def <- default_init(p)
+for(ii in names(init_control)) init_control_def[[ii]] <- init_control[[ii]]
+init_control <- init_control_def
+col_names <- c("1", "\text{Preg.}", "\text{Gluc.}", "\text{BP}", "\text{Skin}", "\text{Insulin}", "\text{BMI}", "\text{Ped.}", "\text{Age}")
+make_mod_name <- function(v, nms = col_names) paste0("$\text{Diab.} ~ ",paste0((nms)[v], collapse = " + "), "$")
+
+all_models <- list()
+for (k in seq.int(nsim)) {
+    cat("Simulation: ", k,"/",nsim,"\n", sep = "")
+    set.seed(k)
+    ## Generate new response variable
+    data$Y <- as.matrix(enriched_glm$auxiliary_functions$simulate(coefficients = true_beta)$sim_1)
+    ## Compute gammastar
+    sgd_control <- calculate_gammaStar_wrapper(data, init_control)
+    gamma_star <- sgd_control$gamma
+    otf_mdls_hard <- NA
+    otf_mdls_soft <- NA 
+    data_cp <- data
+    print("On-the-fly confidence sets:")
+    pb <- progress_bar$new(total = length(chnks))
+    for (i in seq.int(chnks)) {
+        ## reference data
+        ref <- seq(1, max(chnks[[i]]))
+        data_cp$X <- as.matrix(data$X[ref,])
+        if (i == 1 & init_B == 1) data_cp$X <- t(as.matrix(data$X[ref,]))
+        data_cp$Y <- data$Y[ref]
+        N <- nrow(data_cp$X)
+        p <- ncol(data_cp$X)
+        ## Very inefficient
+        theta_hat <- isgd_0(sgd_control$theta0, data_cp, gamma=gamma_star, 
+                            npass=1, use_permutation = FALSE)
+        psi <- get_model_psi(data_cp, theta_hat)
+        V <- psi * gamma_star * rep(1, p) / N
+        ## Compute pivots
+        pivots <- abs(theta_hat) / sqrt(V)
+        thresholds_hard <- optimise_threshold(betas = theta_hat,
+                                              stderrs = sqrt(V),
+                                              n = N,
+                                              p = p,
+                                              fixed = TRUE)
+        thresholds_soft <- optimise_threshold(betas = theta_hat,
+                                              stderrs = sqrt(V),
+                                              n = N,
+                                              p = p,
+                                              fixed = FALSE)
+        Jhat_hard <- pivots > thresholds_hard  # Estimated model
+        Jhat_hard[1] <- TRUE
+        Jhat_soft <- pivots > thresholds_soft  # Estimated model
+        Jhat_soft[1] <- TRUE
+        otf_mdls_hard[i] <- make_mod_name(Jhat_hard)
+        otf_mdls_soft[i] <- make_mod_name(Jhat_soft)
+        pb$tick()
+    }
+    all_models$otf_mdls_hard[[k]] <- otf_mdls_hard
+    all_models$otf_mdls_soft[[k]] <- otf_mdls_soft
 
     ## Get confidence set via bootstrap SGD
+    mdls_1pass_hard <- NA
+    mdls_1pass_soft <- NA
+    pb <- progress_bar$new(total = B)
+    print("One-pass confidence sets:")
+    for(b in seq.int(B)) {
+        set.seed(b)
+        boot_ref <- sample(seq.int(n), n, replace = TRUE)
+        data_cp$Y <- data$Y[boot_ref]
+        data_cp$X <- data$X[boot_ref, ]
+        sgd_control <- calculate_gammaStar_wrapper(data_cp, init_control)
+        gamma_star <- sgd_control$gamma
+        
+        theta_hat <- isgd_0(sgd_control$theta0, data_cp, gamma=gamma_star, 
+                            npass=1, use_permutation = FALSE)
 
-    ## Get confidence set via bootstrap glmodsel
+        psi <- get_model_psi(data_cp, theta_hat)
+        V <- psi * gamma_star * rep(1, p) / n
+        ## Compute pivots
+        pivots <- abs(theta_hat) / sqrt(V)
+        thresholds_hard <- optimise_threshold(betas = theta_hat,
+                                              stderrs = sqrt(V),
+                                              n = n,
+                                              p = p,
+                                              fixed = TRUE) 
+
+        thresholds_soft <- optimise_threshold(betas = theta_hat,
+                                              stderrs = sqrt(V),
+                                              n = n,
+                                              p = p,
+                                              fixed = FALSE) 
+        Jhat_hard <- pivots > thresholds_hard
+        Jhat_hard[1] <- TRUE
+        Jhat_soft <- pivots > thresholds_soft
+        Jhat_soft[1] <- TRUE
+        mdls_1pass_hard[b] <- make_mod_name(Jhat_hard)
+        mdls_1pass_soft[b] <- make_mod_name(Jhat_soft)
+        pb$tick()
+    }
+    all_models$mdls_1pass_hard[[k]] <- mdls_1pass_hard
+    all_models$mdls_1pass_soft[[k]] <- mdls_1pass_soft
 }
 
+
+all_models$J <- true_beta != 0
+all_models$true_mod <- make_mod_name(all_models$J)
+save(all_models, file = file.path(outputs_path, "diabetes_comp_coverage.rda"))
 

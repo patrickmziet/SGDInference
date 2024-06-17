@@ -161,3 +161,5 @@ make_row_tex <- function(vec) {
     row_tex <- paste0(row_tex, " \\\\ \n")
     return(row_tex)
 }
+
+
